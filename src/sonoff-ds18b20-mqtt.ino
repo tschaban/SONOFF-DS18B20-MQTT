@@ -3,29 +3,25 @@
 #include <Ticker.h>
 #include <PubSubClient.h>
 #include <ESP8266WiFi.h>
-#include "Streaming.h"
+// #include "Streaming.h"
 
 #define RELAY 12
 #define LED 13
 #define BUTTON 0
 #define TEMP_SENSOR 14
+#define CONNECTION_WAIT_TIME 300 // How long ESP8266 should wait before next attempt to connect to WiFi or MQTT Broker (msec)
 
 /* Configuration parameters */
 const int   ID              = ESP.getChipId();        // Device ID
-
 const char* WIFI_SSID       = "<SSID>";               // WiFi Name
 const char* WIFI_PASSWORD   = "<password>";           // WiFi Password
-
 const char* MQTT_HOST       = "<host>";               // MQTT Broker Host
 const int   MQTT_PORT       = 1883;                   // MQTT Port
 const char* MQTT_USER       = "<user>";               // MQTT User
 const char* MQTT_PASSWORD   = "<password?";           // MQTT Password
 const char* MQTT_TOPIC      = "/sonoff/switch/";      // MQTT Topic
-
-const int   CONNECTION_WAIT_TIME = 300; // How long ESP8266 should wait before next attempt to connect to WiFi or MQTT Broker (msec)
-
-const float TEMP_CORRECTION = 0;        // Temperature correction
-const int   TEMP_INTERVAL   = 600;      // How often temperature sensor should be read
+const float TEMP_CORRECTION = 0;                      // Temperature correction
+const int   TEMP_INTERVAL   = 600;                    // How often temperature sensor should be read
 
 /* Variables */
 char  mqttTopic[26];  // it stories topic which is MQTT_TOPIC/ID/
