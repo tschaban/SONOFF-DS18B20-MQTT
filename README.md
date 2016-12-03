@@ -3,7 +3,8 @@
 **Features**
 * Sonoff relay is controlled by MQTT (setting ON, OFF)
 * Pressing Sonoff button change the relay from OFF to ON or from ON to OFF
-* Relay state is published in every chantge to MQTT Broker. They can be consumed by other services eg home automation software like openHAB
+* Relay state is published in every change to MQTT Broker. It can be consumed by other services eg home automation software like openHAB
+* DB18B20 sensor value (temperature) is published to MQTT Broker. It can be consumed by other services eg home automation software like openHAB
 * It publishes MQTT messages only if temperature has been changed
 * It's possible to correct temperature value returned by sensor by value specified in sketch configuration part or over the MQTT broker
 * You can set how often Sonoff reads temperature from the DS18b29 sensor in sketch configuration part or over the MQTT Broker
