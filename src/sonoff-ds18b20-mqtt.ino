@@ -28,7 +28,7 @@ const float TEMP_CORRECTION = 0;        // Temperature correction
 const int   TEMP_INTERVAL   = 600;      // How often temperature sensor should be read
 
 /* Variables */
-char    mqttTopic[26];  // it stories topic which is MQTT_TOPIC/ID/
+char  mqttTopic[26];  // it stories topic which is MQTT_TOPIC/ID/
 float tempCorrection = TEMP_CORRECTION;
 float previousTemperature = 0;
 /* Timers */
@@ -52,29 +52,22 @@ void setup() {
   client.setCallback(callbackMQTT);
 
   Serial.println();
-  Serial << "---------------------------------------------------------------" << endl;
-  Serial << " Initialization" << endl;
-
   pinMode(RELAY, OUTPUT);
   digitalWrite(RELAY, LOW);
   pinMode(LED, OUTPUT);
   digitalWrite(LED, HIGH);
   pinMode(BUTTON, INPUT_PULLUP);
 
-  Serial << " Device ID: " << ID << endl;
+ // Serial << " Device ID: " << ID << endl;
 
   sprintf(mqttTopic, "%s%i", MQTT_TOPIC, ID);
-  Serial << " Topic: " << mqttTopic << endl << endl;
 
   connectToWiFi();
-
   DS18B20.begin();
-
-  Serial << " Configuration: " << endl;
   setSensorReadInterval(TEMP_INTERVAL);
-
-  buttonTimer.attach(0.05, button);
+  buttonTimer.attach(0.1, button);
 }
+
 
 /* Blink LED, t defines for how long LED should be ON */
 void blinkLED(int t=50) {
@@ -89,31 +82,22 @@ void blinkLED(int t=50) {
 void publishRelayStateMessage() {
   char  mqttString[50];
   sprintf(mqttString,"%s/state", mqttTopic);
-  Serial << " Publishing: ";
   if (digitalRead(RELAY)==LOW) {
     client.publish(mqttString, "OFF");
-    Serial << "OFF";
   } else {
       client.publish(mqttString, "ON");
-      Serial << "ON";
   }
-  Serial << " to: " << mqttString << ", completed" << endl;
-  blinkLED();
 }
 
 /* Pubish temperature to MQTT broker */
 void publishTemperature() {
-  char  tempString[6];
-  char  mqttString[33];
-  Serial << " Reading temperature  " << endl;
+  char  temperatureString[6];
+  char  mqttString[50];
   float temperature = getTemperature();
-  dtostrf(temperature, 2, 1, tempString);
-  Serial << " - " << tempString << " C" << endl;
+  dtostrf(temperature, 2, 1, temperatureString);
   if (previousTemperature!=temperature) {
     sprintf(mqttString,"%s/temperature", mqttTopic);
-    client.publish(mqttTopic, tempString);
-    blinkLED(200);
-    Serial << " - " << "published to MQTT" << endl;
+    client.publish(mqttString, temperatureString);
     previousTemperature=temperature;
   }
 }
@@ -123,11 +107,8 @@ void publishTemperature() {
 void getConfiguration() {
   char  mqttString[50];
   sprintf(mqttString,"%s/get", mqttTopic);
-  Serial << endl << " Requesting default value";
   client.publish(mqttString, "defaultState");
-  Serial << ", completed" << endl;
   blinkLED();
-  Serial << "---------------------------------------------------------------" << endl;
 }
 
 /* Set relay to ON */
@@ -144,16 +125,11 @@ void setOFF() {
 
 /* Connect to WiFI */
 void connectToWiFi() {
-  Serial << " Connecting to WiFI";
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   while (WiFi.status() != WL_CONNECTED) {
     blinkLED(CONNECTION_WAIT_TIME/2);
     delay(CONNECTION_WAIT_TIME/2);
-    Serial << ".";
   }
-  Serial.println();
-  Serial << " - Connected to WiFi: " << WIFI_SSID << endl;
-  Serial << " - IP address: " << WiFi.localIP()  << endl;
 }
 
 /* Connected to MQTT Broker */
@@ -161,15 +137,11 @@ void connectToMQTT() {
   char  mqttString[50];
   sprintf(mqttString,"Sonoff (ID: %i)",ID);
   while (!client.connected()) {
-    Serial << endl << " Connecting to MQTT Broker";
     if (client.connect(mqttString, MQTT_USER, MQTT_PASSWORD)) {
-        Serial.println();
-        Serial << " - Connected to MQTT Broker: " << MQTT_HOST << ":" << MQTT_PORT << endl;
         sprintf(mqttString,"%s/cmd", mqttTopic);
         client.subscribe(mqttString);
         getConfiguration();
     } else {
-      Serial << ".";
       blinkLED(CONNECTION_WAIT_TIME/2);
       delay(CONNECTION_WAIT_TIME/2);
     }
@@ -180,23 +152,22 @@ void connectToMQTT() {
 void setSensorReadInterval(int interval) {
   temperatureTimer.detach();
   temperatureTimer.attach(interval, publishTemperature);
-  Serial << " - " << "Sensor read interval set to " << interval << "sec." << endl;
 }
 
 /* Callback of MQTT Broker, it listens for messages */
 void callbackMQTT(char* topic, byte* payload, unsigned int length) {
   char  mqttString[50];
   blinkLED();
-  Serial << " Message arrived " <<  topic << endl;
-
   if (length>=6) { // command arrived
     if((char)payload[5] == 'N') { // turnON
       setON();
     } else if((char)payload[5] == 'F') { // turnOFF
       setOFF();
-    }  else if((char)payload[0] == 'r') { // reportState
+    } else if((char)payload[2] == 'p') { // reportState
       publishRelayStateMessage();
-    }  else if((char)payload[4] == 'I') { // tempInterval
+    } else if((char)payload[2] == 's') { // reset
+      ESP.restart();
+    } else if((char)payload[4] == 'I') { // tempInterval
         String inString = "";
         for (int i=13;i<length;i++) {
             inString += (char)payload[i];
@@ -208,7 +179,6 @@ void callbackMQTT(char* topic, byte* payload, unsigned int length) {
             inString += (char)payload[i];
         }
         tempCorrection =  inString.toFloat();
-        Serial << " - " << "Temperature correction set to " << tempCorrection << "C" << endl;
     }
   }
 }
@@ -220,7 +190,6 @@ void button() {
   }
   else {
     if (pressedCount > 1 && pressedCount <= 50) {
-      blinkLED();
       if (digitalRead(RELAY)==LOW) {
           setON();
       } else {
@@ -228,8 +197,7 @@ void button() {
       }
     }
     else if (pressedCount >50){
-      Serial << endl << " Restarting...." << endl;
-      ESP.restart();
+      blinkLED(5000);
     }
   pressedCount = 0;
   }
