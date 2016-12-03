@@ -16,7 +16,7 @@
 * Data line from DS18B20 sensor  should be connected to GPIO14, this is 5th pin counted from the top (1st one pin is the one closest to the sonoff switch button)
 
 
-**MQTT Topic** 
+**MQTT Topics** 
 
 | Topic  | Inbound / Outbound | Message | Description |
 |---|---|---|---|---| 
